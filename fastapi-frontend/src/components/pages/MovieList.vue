@@ -1,85 +1,130 @@
 <template>
   <layout-div>
-    <!-- Верхний баннер на всю ширину -->
-    <div class="hero-section">
-      <div class="hero-content">
-        <h1 class="display-4 fw-bold text-white">
-          <i class="bi bi-collection-play me-3"></i> Movie Catalog
+    <!-- Верхняя панель с кнопками управления -->
+    <div class="hero-section p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <h1 class="display-4 fw-bold text-white mb-0">
+          <i class="bi bi-collection-play me-2"></i> Movie Catalog
         </h1>
-        <router-link to="/create" class="btn btn-light btn-lg">
-          <i class="bi bi-plus-circle me-2"></i> Add New Movie
-        </router-link>
+        
+        <div class="d-flex gap-2 flex-wrap">
+          <!-- Кнопки управления email -->
+          <div class="btn-group" role="group">
+            <button 
+              @click="toggleEmailSending" 
+              class="btn" 
+              :class="emailEnabled ? 'btn-success' : 'btn-secondary'"
+              style="min-width: 120px;"
+            >
+              <i :class="emailEnabled ? 'bi bi-envelope-check' : 'bi bi-envelope-slash'"></i>
+              {{ emailEnabled ? 'EMAIL ON' : 'EMAIL OFF' }}
+            </button>
+            
+            <button @click="sendEmailNow" class="btn btn-info" style="min-width: 100px;">
+              <i class="bi bi-send"></i> SEND
+            </button>
+          </div>
+          
+          <router-link to="/create" class="btn btn-light">
+            <i class="bi bi-plus-circle me-2"></i> ADD MOVIE
+          </router-link>
+        </div>
+      </div>
+      
+      <!-- Индикатор статуса -->
+      <div class="mt-3 text-white-50 bg-dark bg-opacity-25 p-2 rounded">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <span>
+            <i class="bi bi-envelope me-1"></i>
+            Status: 
+            <strong :class="emailEnabled ? 'text-success' : 'text-danger'">
+              {{ emailEnabled ? '✅ Sending enabled' : '❌ Sending disabled' }}
+            </strong>
+          </span>
+          <span>
+            <i class="bi bi-clock me-1"></i>
+            Next report: <strong>Every 5 minutes</strong>
+          </span>
+          <span>
+            <i class="bi bi-envelope-paper me-1"></i>
+            To: <strong>Yugrinkd@mail.ru</strong>
+          </span>
+        </div>
       </div>
     </div>
 
-    <!-- Таблица на всю ширину -->
-    <div class="table-wrapper">
-      <div class="table-card">
-        <div class="table-header">
-          <h3 class="mb-0">
+    <!-- Таблица с фильмами -->
+    <div class="table-container">
+      <div class="card border-0 rounded-0 shadow">
+        <div class="card-header bg-primary text-white py-3 border-0">
+          <h3 class="mb-0 ms-2">
             <i class="bi bi-list-stars me-2"></i> All Movies
           </h3>
         </div>
         
-        <div class="table-responsive">
-          <table class="custom-table">
-            <thead>
-              <tr>
-                <th>#ID</th>
-                <th>TITLE</th>
-                <th>YEAR</th>
-                <th>RATING</th>
-                <th class="text-center">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="movies.length === 0">
-                <td colspan="5" class="text-center py-5">
-                  <div class="empty-state">
-                    <i class="bi bi-emoji-frown display-1"></i>
-                    <h3>No movies found</h3>
-                    <p>Click "Add New Movie" to create your first movie!</p>
-                  </div>
-                </td>
-              </tr>
-              <tr v-for="movie in movies" :key="movie.id">
-                <td class="fw-bold">{{ movie.id }}</td>
-                <td>{{ movie.title }}</td>
-                <td>{{ movie.year }}</td>
-                <td>
-                  <span :class="['rating-badge', getRatingClass(movie.rating)]">
-                    <i class="bi bi-star-fill me-1"></i>
-                    {{ movie.rating || 'N/A' }}
-                  </span>
-                </td>
-                <td>
-                  <div class="action-buttons">
-                    <router-link :to="`/show/${movie.id}`" class="btn-view">
-                      <i class="bi bi-eye"></i> View
-                    </router-link>
-                    <router-link :to="`/edit/${movie.id}`" class="btn-edit">
-                      <i class="bi bi-pencil"></i> Edit
-                    </router-link>
-                    <button @click="handleDelete(movie.id)" class="btn-delete">
-                      <i class="bi bi-trash"></i> Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-dark">
+                <tr>
+                  <th scope="col" class="px-4 py-3">#ID</th>
+                  <th scope="col" class="py-3">Title</th>
+                  <th scope="col" class="py-3">Year</th>
+                  <th scope="col" class="py-3">Rating</th>
+                  <th scope="col" class="py-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="movies.length === 0">
+                  <td colspan="5" class="text-center py-5">
+                    <div class="text-muted py-4">
+                      <i class="bi bi-emoji-frown display-1"></i>
+                      <h3 class="mt-3">No movies found</h3>
+                      <p class="lead">Click "ADD MOVIE" to create your first movie!</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="movie in movies" :key="movie.id" class="align-middle">
+                  <td class="px-4 fw-bold">{{ movie.id }}</td>
+                  <td class="fw-500">{{ movie.title }}</td>
+                  <td>{{ movie.year }}</td>
+                  <td>
+                    <span :class="['badge', getRatingClass(movie.rating)]" class="px-3 py-2">
+                      <i class="bi bi-star-fill me-1"></i>
+                      {{ movie.rating || 'N/A' }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex justify-content-center gap-2">
+                      <router-link :to="`/show/${movie.id}`" class="btn btn-sm btn-outline-info">
+                        <i class="bi bi-eye me-1"></i> View
+                      </router-link>
+                      <router-link :to="`/edit/${movie.id}`" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                      </router-link>
+                      <button @click="handleDelete(movie.id)" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Нижняя информация -->
-        <div class="table-footer">
-          <span>
-            <i class="bi bi-info-circle me-2"></i>
-            Total movies: <strong>{{ movies.length }}</strong>
-          </span>
-          <span>
-            <i class="bi bi-clock me-2"></i>
-            Last updated: <strong>{{ new Date().toLocaleDateString() }}</strong>
-          </span>
+        <!-- Нижний колонтитул -->
+        <div class="card-footer bg-light text-muted py-3 border-0">
+          <div class="d-flex justify-content-between align-items-center px-2">
+            <span>
+              <i class="bi bi-info-circle me-2"></i>
+              Total movies: <strong>{{ movies.length }}</strong>
+            </span>
+            <span>
+              <i class="bi bi-clock me-2"></i>
+              Last updated: <strong>{{ new Date().toLocaleDateString() }}</strong>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -95,10 +140,14 @@ export default {
   name: 'MovieList',
   components: { LayoutDiv },
   data() {
-    return { movies: [] };
+    return { 
+      movies: [],
+      emailEnabled: true
+    };
   },
   created() {
     this.fetchMovies();
+    this.checkEmailStatus();
   },
   methods: {
     fetchMovies() {
@@ -107,14 +156,65 @@ export default {
           this.movies = response.data;
         })
         .catch(error => {
-          Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load movies' });
+          Swal.fire({ 
+            icon: 'error', 
+            title: 'Error', 
+            text: 'Failed to load movies' 
+          });
         });
     },
+    async checkEmailStatus() {
+      try {
+        const response = await axios.get('/email/status');
+        this.emailEnabled = response.data.email_sending_enabled;
+      } catch (error) {
+        console.error('Error checking email status:', error);
+      }
+    },
+    async toggleEmailSending() {
+      try {
+        const endpoint = this.emailEnabled ? '/email/disable' : '/email/enable';
+        const response = await axios.post(endpoint);
+        this.emailEnabled = response.data.current_status === 'enabled';
+        
+        Swal.fire({
+          icon: 'success',
+          title: `Email ${this.emailEnabled ? 'ON' : 'OFF'}`,
+          text: response.data.message,
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to toggle email sending'
+        });
+      }
+    },
+    async sendEmailNow() {
+      try {
+        const response = await axios.post('/email/send-now');
+        Swal.fire({
+          icon: 'success',
+          title: 'Sending...',
+          text: 'Report is being sent to Yugrinkd@mail.ru',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to send email'
+        });
+      }
+    },
     getRatingClass(rating) {
-      if (!rating) return 'rating-na';
-      if (rating >= 8) return 'rating-high';
-      if (rating >= 5) return 'rating-medium';
-      return 'rating-low';
+      if (!rating) return 'bg-secondary';
+      if (rating >= 8) return 'bg-success';
+      if (rating >= 5) return 'bg-warning text-dark';
+      return 'bg-danger';
     },
     handleDelete(id) {
       Swal.fire({
@@ -129,11 +229,20 @@ export default {
         if (result.isConfirmed) {
           axios.delete(`/movies/${id}`)
             .then(() => {
-              Swal.fire({ icon: 'success', title: 'Deleted!', timer: 1500, showConfirmButton: false });
+              Swal.fire({ 
+                icon: 'success', 
+                title: 'Deleted!', 
+                timer: 1500, 
+                showConfirmButton: false 
+              });
               this.fetchMovies();
             })
             .catch(() => {
-              Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to delete' });
+              Swal.fire({ 
+                icon: 'error', 
+                title: 'Error', 
+                text: 'Failed to delete' 
+              });
             });
         }
       });
@@ -143,11 +252,10 @@ export default {
 </script>
 
 <style scoped>
-/* Герой секция на всю ширину */
+/* Герой секция */
 .hero-section {
   width: 100vw;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 3rem 2rem;
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   position: relative;
@@ -156,172 +264,84 @@ export default {
   transform: translateX(-50%);
 }
 
-.hero-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* Обертка таблицы на всю ширину */
-.table-wrapper {
+/* Таблица */
+.table-container {
   width: 100%;
-  padding: 2rem;
-  margin: 0;
+  padding: 0 1rem;
 }
 
-.table-card {
+.card {
+  border-radius: 0;
   width: 100%;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  overflow: hidden;
 }
 
-.table-header {
-  background: #0d6efd;
-  color: white;
-  padding: 1.5rem 2rem;
-}
-
-/* Таблица на всю ширину */
-.custom-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.custom-table th {
-  background: #212529;
-  color: white;
+.table th {
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.9rem;
   letter-spacing: 1px;
-  padding: 1.2rem 1rem;
 }
 
-.custom-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #dee2e6;
+.table td {
+  vertical-align: middle;
+  font-size: 1rem;
 }
 
-.custom-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-/* Рейтинги */
-.rating-badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
-  font-weight: 600;
-  min-width: 80px;
-  text-align: center;
-}
-
-.rating-high {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
-}
-
-.rating-medium {
-  background: linear-gradient(135deg, #ffc107, #fd7e14);
-  color: #212529;
-}
-
-.rating-low {
-  background: linear-gradient(135deg, #dc3545, #c82333);
-  color: white;
-}
-
-.rating-na {
-  background: #6c757d;
-  color: white;
-}
-
-/* Кнопки действий */
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.btn-view, .btn-edit, .btn-delete {
+.btn-sm {
   padding: 0.4rem 1rem;
-  border-radius: 6px;
-  text-decoration: none;
   font-size: 0.85rem;
-  font-weight: 500;
   transition: all 0.2s;
-  border: 2px solid transparent;
-  cursor: pointer;
+  border-width: 2px;
 }
 
-.btn-view {
-  background: #0dcaf0;
-  color: white;
-}
-
-.btn-view:hover {
-  background: #0b9ec0;
+.btn-sm:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.btn-edit {
-  background: #ffc107;
-  color: #212529;
+.badge {
+  font-size: 0.9rem;
+  border-radius: 20px;
+  min-width: 70px;
 }
 
-.btn-edit:hover {
-  background: #e0a800;
-  transform: translateY(-2px);
+/* Убираем отступы */
+:deep(body) {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-.btn-delete {
-  background: #dc3545;
-  color: white;
-  border: none;
+/* Цвета рейтингов */
+.bg-success {
+  background: linear-gradient(135deg, #28a745, #20c997) !important;
 }
 
-.btn-delete:hover {
-  background: #c82333;
-  transform: translateY(-2px);
+.bg-warning {
+  background: linear-gradient(135deg, #ffc107, #fd7e14) !important;
 }
 
-/* Футер таблицы */
-.table-footer {
-  background: #f8f9fa;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: #6c757d;
-  border-top: 1px solid #dee2e6;
+.bg-danger {
+  background: linear-gradient(135deg, #dc3545, #c82333) !important;
 }
 
-/* Пустое состояние */
-.empty-state {
-  padding: 3rem;
-  color: #6c757d;
+.fw-500 {
+  font-weight: 500;
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
-  .hero-content {
+  .hero-section .d-flex {
     flex-direction: column;
-    gap: 1rem;
     text-align: center;
   }
   
-  .action-buttons {
-    flex-direction: column;
+  .btn-group {
+    width: 100%;
   }
   
-  .custom-table th,
-  .custom-table td {
-    font-size: 0.85rem;
-    padding: 0.5rem;
+  .btn-group .btn {
+    flex: 1;
   }
 }
 </style>

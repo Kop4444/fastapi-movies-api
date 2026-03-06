@@ -9,13 +9,19 @@ import schemas
 import crud
 from database import SessionLocal, engine
 
+# Импорт планировщика
+from app.scheduler import lifespan
+
+# Импорт состояния
+from app.state import email_sending_enabled, set_email_status, get_email_status
+
 # Создание таблиц в БД
 models.Base.metadata.create_all(bind=engine)
 
-# 1. СНАЧАЛА создаем app
-app = FastAPI()
+# 1. СНАЧАЛА создаем app с lifespan
+app = FastAPI(lifespan=lifespan)
 
-# 2. ПОТОМ настраиваем CORS (разрешаем запросы с фронтенда)
+# 2. ПОТОМ настраиваем CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -25,8 +31,8 @@ app.add_middleware(
         "http://127.0.0.1:5174"
     ],
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешаем все методы (GET, POST, PUT, DELETE)
-    allow_headers=["*"],  # Разрешаем все заголовки
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # 3. Dependency для получения сессии БД
@@ -40,7 +46,7 @@ def get_db():
 # 4. Корневой эндпойнт
 @app.get("/")
 async def root():
-    return {"message": "Movie API with Database"}
+    return {"message": "Movie API with Database and Scheduler"}
 
 # 5. Получить все фильмы
 @app.get("/movies/", response_model=List[schemas.Movie])
@@ -85,7 +91,81 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Movie not found")
     return {"message": "Movie deleted successfully"}
 
-# 11. Текущее время (из предыдущей работы)
+# 11. Текущее время
 @app.get("/current-time")
 async def get_current_time():
     return {'current_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+# ============= ЭНДПОЙНТЫ ДЛЯ УПРАВЛЕНИЯ ПОЧТОЙ =============
+
+# Эндпойнт для включения отправки
+@app.post("/email/enable")
+async def enable_email():
+    """Включить отправку отчетов на почту"""
+    set_email_status(True)
+    current_status = get_email_status()
+    print(f"\n{'='*50}")
+    print(f"✅ EMAIL SENDING ENABLED")
+    print(f"   Текущий статус: {current_status}")
+    print(f"{'='*50}\n")
+    return {
+        "status": "success", 
+        "message": "✅ Email sending ENABLED",
+        "current_status": "enabled"
+    }
+
+# Эндпойнт для отключения отправки
+@app.post("/email/disable")
+async def disable_email():
+    """Отключить отправку отчетов на почту"""
+    set_email_status(False)
+    current_status = get_email_status()
+    print(f"\n{'='*50}")
+    print(f"❌ EMAIL SENDING DISABLED")
+    print(f"   Текущий статус: {current_status}")
+    print(f"{'='*50}\n")
+    return {
+        "status": "success", 
+        "message": "❌ Email sending DISABLED",
+        "current_status": "disabled"
+    }
+
+# Эндпойнт для проверки статуса
+@app.get("/email/status")
+async def email_status():
+    """Проверить статус отправки отчетов"""
+    current_status = get_email_status()
+    status_text = "enabled" if current_status else "disabled"
+    return {
+        "email_sending_enabled": current_status,
+        "status_text": status_text,
+        "admin_email": "Yugrinkd@mail.ru",
+        "next_run": "Every 5 minutes",
+        "message": f"Email sending is {status_text}"
+    }
+
+# Эндпойнт для ручной отправки
+@app.post("/email/send-now")
+async def send_email_now():
+    """Отправить отчет прямо сейчас"""
+    from app.scheduler import send_movie_report_job
+    import threading
+    thread = threading.Thread(target=send_movie_report_job)
+    thread.daemon = True
+    thread.start()
+    return {"message": "📧 Report is being sent to Yugrinkd@mail.ru"}
+
+# Эндпойнт для проверки настроек почты
+@app.get("/check-email")
+async def check_email_settings():
+    """Проверка настроек почты"""
+    from app.email_service import email_service
+    current_status = get_email_status()
+    return {
+        "admin_email": email_service.admin_email,
+        "smtp_server": email_service.smtp_server,
+        "smtp_port": email_service.smtp_port,
+        "username": email_service.username,
+        "from_email": email_service.from_email,
+        "email_sending_enabled": current_status
+    }
